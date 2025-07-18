@@ -1,8 +1,5 @@
 # Ignore some files from the installation/demo
 office_loop/
-gtsam_with_sl4/
-gtsam/
-salad/
 vggt/
 
 # Ignore setup files from VSCode and Pycharm

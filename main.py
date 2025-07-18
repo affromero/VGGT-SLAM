@@ -7,6 +7,8 @@ import torch
 from tqdm.auto import tqdm
 import cv2
 import matplotlib.pyplot as plt
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'dependencies'))
 
 import vggt_slam.slam_utils as utils
 from vggt_slam.solver import Solver

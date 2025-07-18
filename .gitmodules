@@ -1,0 +1,6 @@
+[submodule "dependencies/salad"]
+	path = dependencies/salad
+	url = https://github.com/Dominic101/salad.git
+[submodule "dependencies/gtsam_with_sl4"]
+	path = dependencies/gtsam_with_sl4
+	url = https://github.com/MIT-SPARK/gtsam_with_sl4.git
