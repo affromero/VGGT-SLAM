@@ -32,6 +32,8 @@ parser.add_argument("--max_loops", type=int, default=1, help="Maximum number of 
 parser.add_argument("--min_disparity", type=float, default=50, help="Minimum disparity to generate a new keyframe")
 parser.add_argument("--use_point_map", action="store_true", help="Use point map instead of depth-based points")
 parser.add_argument("--conf_threshold", type=float, default=25.0, help="Initial percentage of low-confidence points to filter out")
+parser.add_argument("--export_pointcloud", action="store_true", help="Export point cloud even if not logging other results")
+parser.add_argument("--pointcloud_path", type=str, default="pointcloud.pcd", help="Path to save the point cloud file")
 
 def main():
     """
@@ -113,11 +115,19 @@ def main():
         solver.map.write_poses_to_file(args.log_path)
 
         # Log the full point cloud as one file, used for visualization.
-        # solver.map.write_points_to_file(args.log_path.replace(".txt", "_points.pcd"))
+        solver.map.write_points_to_file(args.log_path.replace(".txt", "_points.pcd"))
 
         if not args.skip_dense_log:
             # Log the dense point cloud for each submap.
             solver.map.save_framewise_pointclouds(args.log_path.replace(".txt", "_logs"))
+
+        # Add additional point cloud export formats
+        print(f"Point cloud saved to: {args.log_path.replace('.txt', '_points.pcd')}")
+        
+        # Optional: Export as PLY format as well
+        ply_path = args.log_path.replace(".txt", "_points.ply")
+        solver.map.write_points_to_file(ply_path)
+        print(f"Point cloud also saved to: {ply_path}")
 
     if args.plot_focal_lengths:
         # Define a colormap
@@ -133,6 +143,12 @@ def main():
         plt.ylabel("Focal lengths")
         plt.grid()
         plt.show()
+
+    if args.export_pointcloud or args.log_results:
+        if not args.log_results:
+            # Export point cloud independently
+            solver.map.write_points_to_file(args.pointcloud_path)
+            print(f"Point cloud exported to: {args.pointcloud_path}")
 
 
 if __name__ == "__main__":
