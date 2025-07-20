@@ -121,6 +121,7 @@ class Submap:
     def get_points_list_in_world_frame(self, ignore_loop_closure_frames=False):
         point_list = []
         frame_id_list = []
+        colors_list = []
         frame_conf_mask = []
         for index,points in enumerate(self.pointclouds):
             points_flat = points.reshape(-1, 3)
@@ -128,11 +129,12 @@ class Submap:
             points_transformed = (self.H_world_map @ points_homogeneous.T).T
             point_list.append((points_transformed[:, :3] / points_transformed[:, 3:]).reshape(points.shape))
             frame_id_list.append(self.frame_ids[index])
-            conf_mask = self.conf_masks[index] >= self.conf_threshold
+            colors_list.append(self.colors[index])
+            conf_mask = self.conf_masks[index] # >= self.conf_threshold
             frame_conf_mask.append(conf_mask)
             if ignore_loop_closure_frames and index == self.last_non_loop_frame_index:
                 break
-        return point_list, frame_id_list, frame_conf_mask
+        return point_list, colors_list, frame_id_list, frame_conf_mask
 
     def get_points_in_world_frame(self):
         points = self.filter_data_by_confidence(self.pointclouds)

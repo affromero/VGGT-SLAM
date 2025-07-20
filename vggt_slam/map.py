@@ -76,6 +76,7 @@ class GraphMap:
             yield self.submaps[k]
 
     def write_poses_to_file(self, file_name):
+        poses = []
         with open(file_name, "w") as f:
             for submap in self.ordered_submaps_by_key():
                 poses = submap.get_all_poses_world(ignore_loop_closure_frames=True)
@@ -87,15 +88,22 @@ class GraphMap:
                     quaternion = R.from_matrix(rotation_matrix).as_quat() # x, y, z, w
                     output = np.array([float(frame_id), x, y, z, *quaternion])
                     f.write(" ".join(f"{v:.8f}" for v in output) + "\n")
+        return poses
 
     def save_framewise_pointclouds(self, file_name):
         os.makedirs(file_name, exist_ok=True)
+        dense_logs = []
+        colors_list = []
+        conf_masks_list = []
         for submap in self.ordered_submaps_by_key():
-            pointclouds, frame_ids, conf_masks = submap.get_points_list_in_world_frame(ignore_loop_closure_frames=True)
-            for frame_id, pointcloud, conf_masks in zip(frame_ids, pointclouds, conf_masks):
+            pointclouds, colors, frame_ids, conf_masks = submap.get_points_list_in_world_frame(ignore_loop_closure_frames=True)
+            for frame_id, pointcloud, color,conf_mask in zip(frame_ids, pointclouds, colors, conf_masks):
                 # save pcd as numpy array
-                np.savez(f"{file_name}/{frame_id}.npz", pointcloud=pointcloud, mask=conf_masks)
-                
+                np.savez(f"{file_name}/{int(frame_id)}.npz", pointcloud=pointcloud, mask=conf_mask, color=color)
+                dense_logs.append(pointcloud)
+                conf_masks_list.append(conf_mask)
+                colors_list.append(color)
+        return dense_logs, colors_list, conf_masks_list
 
     def write_points_to_file(self, file_name):
         pcd_all = []
@@ -112,3 +120,4 @@ class GraphMap:
         pcd_all = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pcd_all))
         pcd_all.colors = o3d.utility.Vector3dVector(colors_all)
         o3d.io.write_point_cloud(file_name, pcd_all)
+        return pcd_all

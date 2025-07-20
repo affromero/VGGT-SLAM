@@ -30,9 +30,10 @@ class PoseGraph:
         self.initialized_nodes = set()
         self.num_loop_closures = 0 # Just used for debugging and analysis
 
-    def add_homography(self, key, global_h):
+    def add_homography(self, key, global_h, verbose: bool = True):
         """Add a new homography node to the graph."""
-        print("det(global_h)", np.linalg.det(global_h))
+        if verbose:
+            print("det(global_h)", np.linalg.det(global_h))
         key = X(key)
         if key in self.initialized_nodes:
             print(f"SL4 {key} already exists.")

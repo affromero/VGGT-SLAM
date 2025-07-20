@@ -7,10 +7,14 @@ import open3d as o3d
 import viser
 import viser.transforms as viser_tf
 from termcolor import colored
+import sys
+import os
 
 from vggt.utils.geometry import closed_form_inverse_se3, unproject_depth_map_to_point_map
 from vggt.utils.load_fn import load_and_preprocess_images
 from vggt.utils.pose_enc import pose_encoding_to_extri_intri
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../dependencies'))
 
 from vggt_slam.loop_closure import ImageRetrieval
 from vggt_slam.frame_overlap import FrameTracker
@@ -207,7 +211,7 @@ class Solver:
         self.set_submap_point_cloud(submap)
         self.set_submap_poses(submap)
 
-    def add_points(self, pred_dict):
+    def add_points(self, pred_dict, verbose: bool = True):
         """
         Args:
             pred_dict (dict):
@@ -258,7 +262,7 @@ class Solver:
 
             # Add node to graph.
             H_w_submap = np.eye(4)
-            self.graph.add_homography(new_pcd_num, H_w_submap)
+            self.graph.add_homography(new_pcd_num, H_w_submap, verbose=verbose)
             self.graph.add_prior_factor(new_pcd_num, H_w_submap, self.graph.anchor_noise)
         else:
             prior_pcd_num = self.map.get_largest_key()
@@ -309,12 +313,13 @@ class Solver:
             self.prior_conf = conf[non_lc_frame,...].reshape(-1)
 
             # Add node to graph.
-            self.graph.add_homography(new_pcd_num, H_w_submap)
+            self.graph.add_homography(new_pcd_num, H_w_submap, verbose=verbose)
 
             # Add between factor.
             self.graph.add_between_factor(prior_pcd_num, new_pcd_num, H_relative, self.graph.relative_noise)
 
-            print("added between factor", prior_pcd_num, new_pcd_num, H_relative)
+            if verbose:
+                print("added between factor", prior_pcd_num, new_pcd_num, H_relative)
 
         # Create and add submap.
         self.current_working_submap.set_reference_homography(H_w_submap)
@@ -343,8 +348,9 @@ class Solver:
             self.graph.add_between_factor(loop.detected_submap_id, loop.query_submap_id, H_relative_lc, self.graph.relative_noise)
             self.graph.increment_loop_closure() # Just for debugging and analysis, keep track of total number of loop closures
 
-            print("added loop closure factor", loop.detected_submap_id, loop.query_submap_id, H_relative_lc)
-            print("homography between nodes estimated to be", np.linalg.inv(self.map.get_submap(loop.detected_submap_id).get_reference_homography()) @ H_w_submap)
+            if verbose:
+                print("added loop closure factor", loop.detected_submap_id, loop.query_submap_id, H_relative_lc)
+                print("homography between nodes estimated to be", np.linalg.inv(self.map.get_submap(loop.detected_submap_id).get_reference_homography()) @ H_w_submap)
 
             # print("relative_pose factor added", relative_pose)
 
@@ -380,10 +386,11 @@ class Solver:
         pixel_coords = torch.stack((y_coords, x_coords), dim=1)
         return pixel_coords
 
-    def run_predictions(self, image_names, model, max_loops):
+    def run_predictions(self, image_names, model, max_loops, verbose: bool = True):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         images = load_and_preprocess_images(image_names).to(device)
-        print(f"Preprocessed images shape: {images.shape}")
+        if verbose:
+            print(f"Preprocessed images shape: {images.shape}")
 
         # print("Running inference...")
         dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
@@ -398,7 +405,7 @@ class Solver:
 
         # TODO implement this
         detected_loops = self.image_retrieval.find_loop_closures(self.map, new_submap, max_loop_closures=max_loops)
-        if len(detected_loops) > 0:
+        if verbose and len(detected_loops) > 0:
             print(colored("detected_loops", "yellow"), detected_loops)
         retrieved_frames = self.map.get_frames_from_loops(detected_loops)
 
